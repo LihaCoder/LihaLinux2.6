@@ -1700,7 +1700,7 @@ generic_file_aio_write_nolock(struct kiocb *iocb, const struct iovec *iov,
 {
 	struct file *file = iocb->ki_filp;
 
-	// 在内核2.6中 address_space就是一个page cache、
+	// 在内核2.6中 address_space就是一个page cache。也就是一个文件对应的page cache,而一个页是4096.
 	struct address_space * mapping = file->f_dentry->d_inode->i_mapping;
 	struct address_space_operations *a_ops = mapping->a_ops;
 	size_t ocount;		/* original count */
@@ -1722,6 +1722,7 @@ generic_file_aio_write_nolock(struct kiocb *iocb, const struct iovec *iov,
 
 	ocount = 0;
 
+	// 把写入的数据大小做处理，并且从&iov[seg]这里可以得知，nr_segs变量可以不仅仅是1，也就是可以成为一个iov数组
 	for (seg = 0; seg < nr_segs; seg++) {
 		const struct iovec *iv = &iov[seg];
 
@@ -1765,7 +1766,7 @@ generic_file_aio_write_nolock(struct kiocb *iocb, const struct iovec *iov,
 	inode_update_time(inode, 1);
 
 	/* coalesce the iovecs and go direct-to-BIO for O_DIRECT */
-	// O_DIRECT是不经过page cache
+	// O_DIRECT是不经过page cache，也就是直接把数据打包丢到块层，再直接放到io调度层
 	if (unlikely(file->f_flags & O_DIRECT)) {
 
 		// 一般情况下是相等的。
@@ -1774,6 +1775,7 @@ generic_file_aio_write_nolock(struct kiocb *iocb, const struct iovec *iov,
 						nr_segs, count);
 
 		// 这个是必定执行的。
+		// 把数据放入到io调度层的的具体逻辑。
 		written = generic_file_direct_IO(WRITE, iocb,
 					iov, pos, nr_segs);
 		if (written > 0) {
@@ -1782,6 +1784,8 @@ generic_file_aio_write_nolock(struct kiocb *iocb, const struct iovec *iov,
 				i_size_write(inode,  end);
 				mark_inode_dirty(inode);
 			}
+
+			// end表示此次O_DIRECT以后的文件偏移位置。
 			*ppos = end;
 		}
 		/*
@@ -1792,6 +1796,7 @@ generic_file_aio_write_nolock(struct kiocb *iocb, const struct iovec *iov,
 		 // 所以O_DIRECT和O_SYNC一起使用.
 		if (written >= 0 && file->f_flags & O_SYNC)
 			status = generic_osync_inode(inode, OSYNC_METADATA);
+		
 		if (written >= 0 && !is_sync_kiocb(iocb))
 			written = -EIOCBQUEUED;
 		goto out_status;
@@ -1806,7 +1811,8 @@ generic_file_aio_write_nolock(struct kiocb *iocb, const struct iovec *iov,
 
 		// & (PAGE_CACHE_SIZE -1) 这个操作是什么？得到4096余数。
 		offset = (pos & (PAGE_CACHE_SIZE -1)); /* Within page */
-		
+
+		// 得到在第几个page中。4096的倍数。取整。
 		index = pos >> PAGE_CACHE_SHIFT;
 		bytes = PAGE_CACHE_SIZE - offset;
 		if (bytes > count)
@@ -1898,6 +1904,10 @@ EXPORT_SYMBOL(generic_file_aio_write_nolock);
 
 
 
+// file是写入的文件的抽象
+// iov是写入的数据和写入的大小的整合
+// nr_segs是当前写入的次数
+// ppos是文件的偏移位置
 ssize_t
 generic_file_write_nolock(struct file *file, const struct iovec *iov,
 				unsigned long nr_segs, loff_t *ppos)
@@ -1941,6 +1951,10 @@ ssize_t generic_file_aio_write(struct kiocb *iocb, const char __user *buf,
 EXPORT_SYMBOL(generic_file_aio_write);
 
 // sys_write 最终ext2回调的位置.
+// file是打开的文件的抽象
+// buf是写入的数据的首地址
+// count是当前写入的大小
+// ppos是当前打开文件的偏移位置。
 ssize_t generic_file_write(struct file *file, const char __user *buf,
 			   size_t count, loff_t *ppos)
 {
@@ -1995,12 +2009,20 @@ generic_file_direct_IO(int rw, struct kiocb *iocb, const struct iovec *iov,
 	loff_t offset, unsigned long nr_segs)
 {
 	struct file *file = iocb->ki_filp;
+
+	// inode到这里绝对已经是一个文件了
+	// 所以得到inode对应的page_cache。
+	// 但是我们要思考一个问题...  那就是这里是走O_DIRECT的逻辑，而O_DIRECT是不走page cache的
+	// 那么这里获取到page cache的意义是什么呢？  没错就是获取到内部的函数指针而已...
+	// 因为对于数据的操作都是对于高速缓存（pagecache）的，如果有脏的才会从高速缓存（pagecache）中落盘
+	// 所以理所当然，真正与数据打交道的操作都是address_space提供的。
 	struct address_space *mapping = file->f_dentry->d_inode->i_mapping;
 	ssize_t retval;
 
+	// 如果当前文件存在page cache，那就把当前文件对应的page cache全部落盘？
 	if (mapping->nrpages) {
 		retval = filemap_fdatawrite(mapping);
-		if (retval == 0)
+		if (retval == 0) 
 			retval = filemap_fdatawait(mapping);
 		if (retval)
 			goto out;

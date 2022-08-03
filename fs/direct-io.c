@@ -853,6 +853,7 @@ direct_io_worker(int rw, struct kiocb *iocb, struct inode *inode,
 	int ret2;
 
 	// 看到封装就准备下一层？
+	// 也就是当前在块层，封装好数据准备进入到调度层.
 	struct dio *dio;
 	size_t bytes;
 

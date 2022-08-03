@@ -311,13 +311,13 @@ int file_fsync(struct file *filp, struct dentry *dentry, int datasync)
 	return ret;
 }
 
+// 把当前文件所有的page cache落盘，其中包括元数据信息
 asmlinkage long sys_fsync(unsigned int fd)
 {
 	struct file * file;
 	struct dentry * dentry;
 	struct inode * inode;
 	int ret, err;
-
 	ret = -EBADF;
 	file = fget(fd);
 	if (!file)
@@ -333,16 +333,27 @@ asmlinkage long sys_fsync(unsigned int fd)
 	}
 
 	/* We need to protect against concurrent writers.. */
+	// 上锁，保证原子性
 	down(&inode->i_sem);
+	
 	current->flags |= PF_SYNCWRITE;
+
+	// 这个是把数据落盘
 	ret = filemap_fdatawrite(inode->i_mapping);
+
+	// 这个是吧元数据落盘？
+	// 这里是一个匿名的函数指针。
 	err = file->f_op->fsync(file, dentry, 0);
+	
 	if (!ret)
 		ret = err;
+	
 	err = filemap_fdatawait(inode->i_mapping);
 	if (!ret)
 		ret = err;
 	current->flags &= ~PF_SYNCWRITE;
+
+	// 释放锁。
 	up(&inode->i_sem);
 
 out_putf:
@@ -351,6 +362,9 @@ out:
 	return ret;
 }
 
+
+// 把当前文件所有的page cache落盘
+// 对于一些不重要的操作元数据信息是不会落盘的，因为落不落盘都不影响整体。
 asmlinkage long sys_fdatasync(unsigned int fd)
 {
 	struct file * file;
@@ -2667,6 +2681,7 @@ static int end_bio_bh_io_sync(struct bio *bio, unsigned int bytes_done, int err)
 	return 0;
 }
 
+// 把bh的数据（元数据信息）封装成一个bio。然后submit_bio生成队列。
 int submit_bh(int rw, struct buffer_head * bh)
 {
 	struct bio *bio;
@@ -2769,11 +2784,17 @@ void ll_rw_block(int rw, int nr, struct buffer_head *bhs[])
 void sync_dirty_buffer(struct buffer_head *bh)
 {
 	WARN_ON(atomic_read(&bh->b_count) < 1);
+
+	// 当前buffer_head已经被上锁了。就进入等待队列。
 	lock_buffer(bh);
 	if (test_clear_buffer_dirty(bh)) {
 		get_bh(bh);
 		bh->b_end_io = end_buffer_write_sync;
+
+		// 提交任务
 		submit_bh(WRITE, bh);
+
+		// 阻塞等待任务结束。
 		wait_on_buffer(bh);
 	} else {
 		unlock_buffer(bh);

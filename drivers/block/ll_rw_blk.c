@@ -2308,6 +2308,7 @@ end_io:
 		 */
 		blk_partition_remap(bio);
 
+		// 任何关于队列的操作，肯定都是request_queue来定义接口，文件系统来实现。
 		ret = q->make_request_fn(q, bio);
 	} while (ret);
 }

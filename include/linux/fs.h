@@ -805,7 +805,7 @@ struct file_operations {
 	int (*open) (struct inode *, struct file *);
 	int (*flush) (struct file *);
 	int (*release) (struct inode *, struct file *);
-	int (*fsync) (struct file *, struct dentry *, int datasync);
+	int (*，) (struct file *, struct dentry *, int datasync);
 	int (*aio_fsync) (struct kiocb *, int datasync);
 	int (*fasync) (int, struct file *, int);
 	int (*lock) (struct file *, int, struct file_lock *);
@@ -1270,7 +1270,7 @@ static inline struct inode *iget(struct super_block *sb, unsigned long ino)
 	if (inode && (inode->i_state & I_NEW)) {
 
 		// 通过父节点的inode拿到super_block。
-		// 再通过super_block的操作拿到当前的inode
+		// 再通过super_block的操作函数指针给当前找到的inode赋予操作。
 		sb->s_op->read_inode(inode);
 		unlock_new_inode(inode);
 	}

@@ -1236,7 +1236,10 @@ static int ext2_update_inode(struct inode * inode, int do_sync)
 	} else for (n = 0; n < EXT2_N_BLOCKS; n++)
 		raw_inode->i_block[n] = ei->i_data[n];
 	mark_buffer_dirty(bh);
+	
 	if (do_sync) {
+
+		// 落盘，并且等待。
 		sync_dirty_buffer(bh);
 		if (buffer_req(bh) && !buffer_uptodate(bh)) {
 			printk ("IO error syncing ext2 inode [%s:%08lx]\n",

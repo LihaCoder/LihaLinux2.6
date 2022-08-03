@@ -74,14 +74,18 @@ static struct dentry *ext2_lookup(struct inode * dir, struct dentry *dentry, str
 	if (dentry->d_name.len > EXT2_NAME_LEN)
 		return ERR_PTR(-ENAMETOOLONG);
 
+	// 通过父目录的inode中的数据块定位到当前打开的文件的ino编号。
 	ino = ext2_inode_by_name(dir, dentry);
 	inode = NULL;
 	if (ino) {
+
+		// 通过ino编号找到具体的inode节点。并且给当前inode节点赋予操作。
 		inode = iget(dir->i_sb, ino);
 		if (!inode)
 			return ERR_PTR(-EACCES);
 	}
 	if (inode)
+		// 通过父目录找到了当前要找到的inode(文件)
 		return d_splice_alias(inode, dentry);
 	d_add(dentry, inode);
 	return NULL;

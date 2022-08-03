@@ -1082,6 +1082,7 @@ out_release:
 	goto out;
 }
 
+// 把socket抽象成一个文件。因为在Linux高版本中一切皆文件。vfs
 asmlinkage long sys_socket(int family, int type, int protocol)
 {
 	int retval;

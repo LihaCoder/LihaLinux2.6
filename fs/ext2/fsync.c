@@ -31,18 +31,27 @@
  *	File may be NULL when we are called. Perhaps we shouldn't
  *	even pass file to fsync ?
  */
-
+ 
+ // fsync回调处
 int ext2_sync_file(struct file * file, struct dentry *dentry, int datasync)
 {
 	struct inode *inode = dentry->d_inode;
 	int err;
 	
 	err  = sync_mapping_buffers(inode->i_mapping);
+
+	// 数据脏了就把元数据信息给落盘。
+	// 反之不脏就直接返回.
 	if (!(inode->i_state & I_DIRTY))
 		return err;
+
+	// 落盘元数据datasync为0，所以就进不去if中。
+	// 当执行sys_fdatasync时datasync为1，并且当设置了I_DIRTY_DATASYNC这个标志位时，也把元数据落盘，不然直接返回。
+	// 所以发生了重要的写I_DIRTY_DATASYNC这个标志位就会带上。
 	if (datasync && !(inode->i_state & I_DIRTY_DATASYNC))
 		return err;
-	
+
+	// 元数据信息落盘
 	err |= ext2_sync_inode(inode);
 	return err ? -EIO : 0;
 }

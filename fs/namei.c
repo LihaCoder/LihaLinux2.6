@@ -361,9 +361,14 @@ static struct dentry * real_lookup(struct dentry * parent, struct qstr * name, s
 	// 在内存中找dentry，如果内存中维护了就直接获取到，如果内存中没有就去硬盘中找.
 	result = d_lookup(parent, name);
 	if (!result) {
+
+		// 走到这里代表内存中并没有维护当前需要打开文件的dentry。
+		// 所以开辟一个dentry，后续再把打开文件的inode放入到dentry中。
 		struct dentry * dentry = d_alloc(parent, name);
 		result = ERR_PTR(-ENOMEM);
 		if (dentry) {
+
+			// 通过父目录的数据块找到当前文件的inode，最后放入到dentry中。
 			result = dir->i_op->lookup(dir, dentry, nd);
 			if (result)
 				dput(dentry);
@@ -540,6 +545,8 @@ done:
 	return 0;
 
 need_lookup:
+
+	// 这里的nd->dentry是父目录的dentry
 	dentry = real_lookup(nd->dentry, name, nd);
 	if (IS_ERR(dentry))
 		goto fail;
@@ -641,6 +648,7 @@ int link_path_walk(const char * name, struct nameidata *nd)
 				break;
 		}
 		nd->flags |= LOOKUP_CONTINUE;
+		
 		/* This does the actual lookups.. */
 		err = do_lookup(nd, &this, &next);
 		if (err)
@@ -862,6 +870,7 @@ int path_lookup(const char *name, unsigned int flags, struct nameidata *nd)
 	read_lock(&current->fs->lock);
 
 	// 如果文件名就是一个/  ,也就是最根目录。
+	// 绝对路径
 	if (*name=='/') {
 		if (current->fs->altroot && !(nd->flags & LOOKUP_NOALT)) {
 			nd->mnt = mntget(current->fs->altrootmnt);
@@ -874,6 +883,7 @@ int path_lookup(const char *name, unsigned int flags, struct nameidata *nd)
 		nd->mnt = mntget(current->fs->rootmnt);
 		nd->dentry = dget(current->fs->root);
 	}
+	// 相对路径
 	else{
 		nd->mnt = mntget(current->fs->pwdmnt);
 

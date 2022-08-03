@@ -3,7 +3,11 @@
 
 /* PAGE_SHIFT determines the page size */
 #define PAGE_SHIFT	12
+
+// 1<<12 = 4096
 #define PAGE_SIZE	(1UL << PAGE_SHIFT)
+
+// ~4095?
 #define PAGE_MASK	(~(PAGE_SIZE-1))
 
 #define LARGE_PAGE_MASK (~(LARGE_PAGE_SIZE-1))

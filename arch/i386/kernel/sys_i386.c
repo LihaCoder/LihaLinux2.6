@@ -40,6 +40,12 @@ asmlinkage int sys_pipe(unsigned long __user * fildes)
 }
 
 /* common code for old and new mmaps */
+// addr 地址
+// len 长度
+// prot
+// flags 标志位
+// fd 文件的下标
+// pgoff 页的偏移量
 static inline long do_mmap2(
 	unsigned long addr, unsigned long len,
 	unsigned long prot, unsigned long flags,
@@ -49,6 +55,9 @@ static inline long do_mmap2(
 	struct file * file = NULL;
 
 	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
+
+	// MAP_ANONYMOUS标识符表示不使用文件。
+	// 所以flags等于MAP_ANONYMOUS那么就不走if
 	if (!(flags & MAP_ANONYMOUS)) {
 		file = fget(fd);
 		if (!file)
@@ -65,6 +74,8 @@ out:
 	return error;
 }
 
+// 如果fd为0就代表在堆段映射一段虚拟空间
+// 如果fd有值就代表把文件映射到堆段中一段虚拟空间
 asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
 	unsigned long prot, unsigned long flags,
 	unsigned long fd, unsigned long pgoff)
