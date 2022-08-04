@@ -294,6 +294,8 @@ static void select_bits_free(void *bits, int size)
 #define MAX_SELECT_SECONDS \
 	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
 
+// 先要明白select的作用。
+// 是什么  ，能干什么，怎么玩。理论，实操，总结。三板斧
 asmlinkage long
 sys_select(int n, fd_set __user *inp, fd_set __user *outp, fd_set __user *exp, struct timeval __user *tvp)
 {
@@ -336,8 +338,12 @@ sys_select(int n, fd_set __user *inp, fd_set __user *outp, fd_set __user *exp, s
 	 * long-words. 
 	 */
 	ret = -ENOMEM;
+
+	
 	size = FDS_BYTES(n);
+	
 	bits = select_bits_alloc(size);
+	
 	if (!bits)
 		goto out_nofds;
 	fds.in      = (unsigned long *)  bits;

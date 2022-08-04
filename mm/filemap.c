@@ -1330,7 +1330,7 @@ repeat:
 
 static struct vm_operations_struct generic_file_vm_ops = {
 	.nopage		= filemap_nopage,
-	.populate	= filemap_populate,
+	.populate	= filemap_populate,		// 不要被这玩意诱惑到了
 };
 
 /* This is used for a general mmap of a disk file */

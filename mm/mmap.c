@@ -492,6 +492,7 @@ unsigned long do_mmap_pgoff(struct file * file, unsigned long addr,
 		return -EINVAL;
 
 	/* offset overflow? */
+	// len为负数？
 	if ((pgoff + (len >> PAGE_SHIFT)) < pgoff)
 		return -EINVAL;
 

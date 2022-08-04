@@ -220,6 +220,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code)
 	siginfo_t info;
 
 	/* get the address */
+	// 发生pagefault的线性地址
 	__asm__("movl %%cr2,%0":"=r" (address));
 
 	/* It's safe to allow irq's after cr2 has been saved */

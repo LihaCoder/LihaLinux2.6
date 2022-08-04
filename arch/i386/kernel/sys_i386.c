@@ -40,12 +40,12 @@ asmlinkage int sys_pipe(unsigned long __user * fildes)
 }
 
 /* common code for old and new mmaps */
-// addr 地址
+// addr 建议开始地址
 // len 长度
-// prot
+// prot 拥有的操作
 // flags 标志位
 // fd 文件的下标
-// pgoff 页的偏移量
+// pgoff 页全局表的偏移量
 static inline long do_mmap2(
 	unsigned long addr, unsigned long len,
 	unsigned long prot, unsigned long flags,

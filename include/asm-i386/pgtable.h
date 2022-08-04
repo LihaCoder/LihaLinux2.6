@@ -176,6 +176,8 @@ extern unsigned long __PAGE_KERNEL;
 /* page table for 0-4MB for everybody */
 extern unsigned long pg0[1024];
 
+// _PAGE_PRESENT对应第1位
+// _PAGE_PROTNONE对应第8位
 #define pte_present(x)	((x).pte_low & (_PAGE_PRESENT | _PAGE_PROTNONE))
 #define pte_clear(xp)	do { set_pte(xp, __pte(0)); } while (0)
 

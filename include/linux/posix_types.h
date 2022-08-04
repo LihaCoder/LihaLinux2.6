@@ -34,6 +34,8 @@
 #define	__FDMASK(d)	(1UL << ((d) % __NFDBITS))
 
 typedef struct {
+	// 32位机为8
+	// 64位机为4
 	unsigned long fds_bits [__FDSET_LONGS];
 } __kernel_fd_set;
 

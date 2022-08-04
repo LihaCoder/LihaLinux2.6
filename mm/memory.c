@@ -145,11 +145,15 @@ void clear_page_tables(struct mmu_gather *tlb, unsigned long first, int nr)
 
 pte_t * pte_alloc_map(struct mm_struct *mm, pmd_t *pmd, unsigned long address)
 {
+
+	// 页中目录描述符的最后一位为0，也就是当前没页表？
 	if (!pmd_present(*pmd)) {
 		struct page *new;
 
 		spin_unlock(&mm->page_table_lock);
+	
 		new = pte_alloc_one(mm, address);
+		
 		spin_lock(&mm->page_table_lock);
 		if (!new)
 			return NULL;
@@ -166,6 +170,7 @@ pte_t * pte_alloc_map(struct mm_struct *mm, pmd_t *pmd, unsigned long address)
 		pmd_populate(mm, pmd, new);
 	}
 out:
+	// 这里是找到具体的页表项
 	return pte_offset_map(pmd, address);
 }
 
@@ -1405,6 +1410,7 @@ do_no_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	if (!vma->vm_ops || !vma->vm_ops->nopage)
 		return do_anonymous_page(mm, vma, page_table,
 					pmd, write_access, address);
+	
 	pte_unmap(page_table);
 	spin_unlock(&mm->page_table_lock);
 
@@ -1561,13 +1567,19 @@ static inline int handle_pte_fault(struct mm_struct *mm,
 {
 	pte_t entry;
 
+	// 把地址转换为描述符数据。
 	entry = *pte;
+
+	// 这里能进来就代表当前的pte描述符的第1位和第8位为0
+	// 第1位为0也就是没映射。
 	if (!pte_present(entry)) {
 		/*
 		 * If it truly wasn't present, we know that kswapd
 		 * and the PTE updates will not touch it later. So
 		 * drop the lock.
 		 */
+
+		// pte描述符都为0就能进去。
 		if (pte_none(entry))
 			return do_no_page(mm, vma, address, write_access, pte, pmd);
 		if (pte_file(entry))
