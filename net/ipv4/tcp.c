@@ -382,14 +382,19 @@ static __inline__ unsigned int tcp_listen_poll(struct sock *sk,
  *	take care of normal races (between the test and the event) and we don't
  *	go look at any of the socket buffers directly.
  */
+ // poll的tcp实现。
+ // wait是一个函数指针，也就是一个钩子
 unsigned int tcp_poll(struct file *file, struct socket *sock, poll_table *wait)
 {
 	unsigned int mask;
 	struct sock *sk = sock->sk;
 	struct tcp_opt *tp = tcp_sk(sk);
 
+	// 执行钩子
 	poll_wait(file, sk->sk_sleep, wait);
+	
 	if (sk->sk_state == TCP_LISTEN)
+		
 		return tcp_listen_poll(sk, wait);
 
 	/* Socket is not locked. We are protected from async events

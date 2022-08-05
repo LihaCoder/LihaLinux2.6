@@ -73,6 +73,8 @@ typedef enum {
  *  @type - socket type (%SOCK_STREAM, etc)
  *  @passcred - credentials (used only in Unix Sockets (aka PF_LOCAL))
  */
+ // 一套规范，一套抽象
+ // 具体的实现，就有具体的实现。
 struct socket {
 	socket_state		state;
 	unsigned long		flags;
@@ -92,6 +94,8 @@ struct sockaddr;
 struct msghdr;
 struct module;
 
+// protocol
+// 也就是基于socket而言， 不同的协议一套操作。
 struct proto_ops {
 	int		family;
 	struct module	*owner;

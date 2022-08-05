@@ -1636,8 +1636,11 @@ need_resched:
 EXPORT_SYMBOL(preempt_schedule);
 #endif /* CONFIG_PREEMPT */
 
+// 被唤醒回调此方法
+// 此方法唤醒当前元素中的task_struct
 int default_wake_function(wait_queue_t *curr, unsigned mode, int sync)
 {
+
 	task_t *p = curr->task;
 	return try_to_wake_up(p, mode, sync);
 }

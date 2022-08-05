@@ -192,6 +192,8 @@ struct sock {
 	unsigned char		sk_userlocks;
 	socket_lock_t		sk_lock;
 	int			sk_rcvbuf;
+
+	// 维护的等待队列。
 	wait_queue_head_t	*sk_sleep;
 	struct dst_entry	*sk_dst_cache;
 	rwlock_t		sk_dst_lock;

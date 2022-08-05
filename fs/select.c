@@ -28,8 +28,14 @@
 #define DEFAULT_POLLMASK (POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM)
 
 struct poll_table_entry {
+
+	// 当前节点的文件。
 	struct file * filp;
+
+	// 这个是....
 	wait_queue_t wait;
+
+	// 这是当前sock协议对应的一个队列。  注意这里是指针哦。  baby
 	wait_queue_head_t * wait_address;
 };
 
@@ -86,11 +92,17 @@ void poll_freewait(struct poll_wqueues *pwq)
 
 EXPORT_SYMBOL(poll_freewait);
 
+// tcp_poll里面执行的钩子
+// 这是把fd和当前进程封装成一个队列元素放入到队列中，并且绑定了回调的钩子。
 void __pollwait(struct file *filp, wait_queue_head_t *wait_address, poll_table *_p)
 {
+	// 骚操作获取到结构体的基址。
 	struct poll_wqueues *p = container_of(_p, struct poll_wqueues, pt);
+
+	// 
 	struct poll_table_page *table = p->table;
 
+	// 队列不存在，或者内部元素为0.
 	if (!table || POLL_TABLE_FULL(table)) {
 		struct poll_table_page *new_table;
 
@@ -107,13 +119,27 @@ void __pollwait(struct file *filp, wait_queue_head_t *wait_address, poll_table *
 	}
 
 	/* Add a new entry */
+	// 放入到队列。
 	{
 		struct poll_table_entry * entry = table->entry;
+
+		// 意思是poll_table_entry是一个连续的空间，数组？
 		table->entry = entry+1;
+
+		// 原子性加引用。代表被使用了。
 	 	get_file(filp);
+		
 	 	entry->filp = filp;
+		
 		entry->wait_address = wait_address;
+
+		// 初始化wait_queue_t wait;
+		// 把对应的进程结构体、回调钩子赋值
 		init_waitqueue_entry(&entry->wait, current);
+
+		// wait_address这个是sock维护的队列
+		// &entry->wait这个是队列中的元素
+		// 所以这是放入到队列中
 		add_wait_queue(wait_address,&entry->wait);
 	}
 }
@@ -211,7 +237,11 @@ int do_select(int n, fd_set_bits *fds, long *timeout)
 			struct file_operations *f_op = NULL;
 			struct file *file = NULL;
 
+			// 这里是先++ 再*
+			// 取数组的下一位。
 			in = *inp++; out = *outp++; ex = *exp++;
+
+			// 二进制组合，最后还是为0，就代表这三个值都为0
 			all_bits = in | out | ex;
 			if (all_bits == 0) {
 				i += __NFDBITS;
@@ -223,21 +253,31 @@ int do_select(int n, fd_set_bits *fds, long *timeout)
 					break;
 				if (!(bit & all_bits))
 					continue;
+
+				// 获取到文件
 				file = fget(i);
+				
 				if (file) {
 					f_op = file->f_op;
 					mask = DEFAULT_POLLMASK;
 					if (f_op && f_op->poll)
+						//  这里面会把当前fd和当前current做绑定放入到一个队列中等待
 						mask = (*f_op->poll)(file, retval ? NULL : wait);
 					fput(file);
+
+					// in 必须有bit这一位？
 					if ((mask & POLLIN_SET) && (in & bit)) {
 						res_in |= bit;
 						retval++;
 					}
+
+					// out 必须有bit这一位？
 					if ((mask & POLLOUT_SET) && (out & bit)) {
 						res_out |= bit;
 						retval++;
 					}
+
+					// ex 必须有bit这一位？
 					if ((mask & POLLEX_SET) && (ex & bit)) {
 						res_ex |= bit;
 						retval++;
@@ -341,11 +381,14 @@ sys_select(int n, fd_set __user *inp, fd_set __user *outp, fd_set __user *exp, s
 
 	
 	size = FDS_BYTES(n);
-	
+
+	// 开辟4 * 6的大小，用来存放fd_set_bits fds;
 	bits = select_bits_alloc(size);
 	
 	if (!bits)
 		goto out_nofds;
+
+	// 推指针
 	fds.in      = (unsigned long *)  bits;
 	fds.out     = (unsigned long *) (bits +   size);
 	fds.ex      = (unsigned long *) (bits + 2*size);
@@ -353,6 +396,7 @@ sys_select(int n, fd_set __user *inp, fd_set __user *outp, fd_set __user *exp, s
 	fds.res_out = (unsigned long *) (bits + 4*size);
 	fds.res_ex  = (unsigned long *) (bits + 5*size);
 
+	// 把用户传进来的数据拷贝到上面初始化的fd_set_bits fds中。
 	if ((ret = get_fd_set(n, inp, fds.in)) ||
 	    (ret = get_fd_set(n, outp, fds.out)) ||
 	    (ret = get_fd_set(n, exp, fds.ex)))

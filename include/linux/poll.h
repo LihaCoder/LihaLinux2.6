@@ -24,6 +24,9 @@ typedef struct poll_table_struct {
 static inline void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table *p)
 {
 	if (p && wait_address)
+
+		// 调用函数指针。
+		// 放入队列等待。
 		p->qproc(filp, wait_address, p);
 }
 
@@ -47,7 +50,6 @@ extern void poll_freewait(struct poll_wqueues *pwq);
 /*
  * Scaleable version of the fd_set.
  */
-
 typedef struct {
 	unsigned long *in, *out, *ex;
 	unsigned long *res_in, *res_out, *res_ex;
