@@ -64,7 +64,6 @@ static inline void init_waitqueue_entry(wait_queue_t *q, struct task_struct *p)
 {
 	q->flags = 0;
 	q->task = p;
-
 	// 继续放钩子
 	// 被唤醒的钩子。
 	q->func = default_wake_function;

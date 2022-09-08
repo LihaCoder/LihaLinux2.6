@@ -271,6 +271,8 @@ static inline int ip_local_deliver_finish(struct sk_buff *skb)
 /*
  * 	Deliver IP Packets to the higher protocol layers.
  */ 
+ // 把ip层的数据往上层走。
+ // 也就是往传输层走，tcp、udp
 int ip_local_deliver(struct sk_buff *skb)
 {
 	/*
@@ -278,6 +280,9 @@ int ip_local_deliver(struct sk_buff *skb)
 	 */
 
 	if (skb->nh.iph->frag_off & htons(IP_MF|IP_OFFSET)) {
+
+		// ip_defrag把分片给整合起来。
+		// 因为在底层传输的过程中，是分片传输的(为了效率)
 		skb = ip_defrag(skb);
 		if (!skb)
 			return 0;

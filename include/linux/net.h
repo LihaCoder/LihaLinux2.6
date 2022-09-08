@@ -75,6 +75,7 @@ typedef enum {
  */
  // 一套规范，一套抽象
  // 具体的实现，就有具体的实现。
+ // 但是实际内核中使用的是sock结构体。门面模式？
 struct socket {
 	socket_state		state;
 	unsigned long		flags;

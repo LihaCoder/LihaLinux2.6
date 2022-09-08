@@ -99,6 +99,8 @@ static inline void _urb_unlink(struct _urb *_urb)
 struct _urb *_urb_dequeue(struct _urb_queue *q);
 
 #ifndef container_of
+// type结构体
+// member为字段
 #define container_of(ptr, type, member) ({                      \
 		        const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
 			        (type *)( (char *)__mptr - offsetof(type,member) );})

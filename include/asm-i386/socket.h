@@ -48,8 +48,8 @@
 /* Nasty libc5 fixup - bletch */
 #if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
 /* Socket types. */
-#define SOCK_STREAM	1		/* stream (connection) socket	*/
-#define SOCK_DGRAM	2		/* datagram (conn.less) socket	*/
+#define SOCK_STREAM	1		/* stream (connection) socket	*/	// tcp,面向流
+#define SOCK_DGRAM	2		/* datagram (conn.less) socket	*/ 	// udp,面向报
 #define SOCK_RAW	3		/* raw socket			*/
 #define SOCK_RDM	4		/* reliably-delivered message	*/
 #define SOCK_SEQPACKET	5		/* sequential packet socket	*/

@@ -1698,6 +1698,7 @@ int ip_route_input_slow(struct sk_buff *skb, u32 daddr, u32 saddr,
 	rth->fl.oif 	= 0;
 	rth->rt_spec_dst= spec_dst;
 
+	// 又是函数指针。shit
 	rth->u.dst.input = ip_forward;
 	rth->u.dst.output = ip_output;
 
@@ -1839,6 +1840,7 @@ martian_source:
 	goto e_inval;
 }
 
+// 接收分组
 int ip_route_input(struct sk_buff *skb, u32 daddr, u32 saddr,
 		   u8 tos, struct net_device *dev)
 {
@@ -1903,6 +1905,8 @@ int ip_route_input(struct sk_buff *skb, u32 daddr, u32 saddr,
 		read_unlock(&inetdev_lock);
 		return -EINVAL;
 	}
+
+	// 详细处理。
 	return ip_route_input_slow(skb, daddr, saddr, tos, dev);
 }
 

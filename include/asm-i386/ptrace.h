@@ -22,7 +22,8 @@
 
 /* this struct defines the way the registers are stored on the 
    stack during a system call. */
-
+// 很好理解，因为寄存器是共享的，所以需要把用户态保存在寄存器数据保存起来，
+// 防止内核态使用了寄存器，造成数据混乱
 struct pt_regs {
 	long ebx;
 	long ecx;

@@ -333,6 +333,7 @@ void __init softirq_init(void)
 	register_cpu_notifier(&tasklet_nb);
 }
 
+// 轮训的方式
 static int ksoftirqd(void * __bind_cpu)
 {
 	int cpu = (int) (long) __bind_cpu;

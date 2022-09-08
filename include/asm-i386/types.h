@@ -21,7 +21,11 @@ typedef unsigned int __u32;
 
 #if defined(__GNUC__) && !defined(__STRICT_ANSI__)
 typedef __signed__ long long __s64;
-typedef unsigned long long __u64;
+
+// 明白u开头的意思了。 无关cpu架构。内核定义大小，自动转换成对应cpu的位数大小。
+// 比如在i386  ,32位机上，想定义64位，就需要2个long。 而假如是ia64，64位机上，就只需要一个long。
+// 所以u开头的系列是内核帮你自动适配cpu的位数，让你想用多少位就多少位，不要去在乎cpu的位数。
+typedef unsigned long long __u64;		
 #endif
 
 #endif /* __ASSEMBLY__ */

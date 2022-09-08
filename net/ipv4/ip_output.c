@@ -282,14 +282,20 @@ int ip_mc_output(struct sk_buff *skb)
 		return ip_finish_output(skb);
 }
 
+// 准备好往ip层的下层传输数据，也就是包装数据。
 int ip_output(struct sk_buff *skb)
 {
 	IP_INC_STATS(IpOutRequests);
 
+	// 因为在链路层规定了ip层下来的数据只能是mtu的大小，默认是1500
+	// 所以这里需要判断数据是否大于了mtu大小，如果大于了就做分片处理，小于的话就直接包装发送
 	if ((skb->len > dst_pmtu(skb->dst) || skb_shinfo(skb)->frag_list) &&
 	    !skb_shinfo(skb)->tso_size)
+
+		// 数据需要分片
 		return ip_fragment(skb, ip_finish_output);
 	else
+		// 不需要分片
 		return ip_finish_output(skb);
 }
 

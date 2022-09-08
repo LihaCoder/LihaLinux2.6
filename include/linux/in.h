@@ -176,6 +176,8 @@ struct in_pktinfo
 struct sockaddr_in {
   sa_family_t		sin_family;	/* Address family		*/
   unsigned short int	sin_port;	/* Port number			*/
+
+  // 这里的地址是4个字节，因为规范是192.192.192.192。每个部分为一个字节
   struct in_addr	sin_addr;	/* Internet address		*/
 
   /* Pad to size of `struct sockaddr'. */

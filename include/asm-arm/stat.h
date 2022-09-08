@@ -54,13 +54,13 @@ struct stat {
  * in the hope that the kernel has stretched to using larger sizes.
  */
 struct stat64 {
-	unsigned long long	st_dev;
-	unsigned char   __pad0[4];
+	unsigned long long	st_dev;   
+	unsigned char   __pad0[4];     
 
 #define STAT64_HAS_BROKEN_ST_INO	1
-	unsigned long	__st_ino;
-	unsigned int	st_mode;
-	unsigned int	st_nlink;
+	unsigned long	__st_ino;  
+	unsigned int	st_mode;    
+	unsigned int	st_nlink;  
 
 	unsigned long	st_uid;
 	unsigned long	st_gid;

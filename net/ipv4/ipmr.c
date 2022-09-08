@@ -1123,7 +1123,7 @@ static inline int ipmr_forward_finish(struct sk_buff *skb)
 /*
  *	Processing handlers for ipmr_forward
  */
-
+// 分组转发的逻辑
 static void ipmr_queue_xmit(struct sk_buff *skb, struct mfc_cache *c, int vifi)
 {
 	struct iphdr *iph = skb->nh.iph;

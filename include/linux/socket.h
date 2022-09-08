@@ -31,7 +31,6 @@ typedef unsigned short	sa_family_t;
 /*
  *	1003.1g requires sa_family_t and that sa_data is char.
  */
- 
 struct sockaddr {
 	sa_family_t	sa_family;	/* address family, AF_xxx	*/
 	char		sa_data[14];	/* 14 bytes of protocol address	*/
@@ -180,6 +179,7 @@ struct ucred {
 #define AF_BLUETOOTH	31	/* Bluetooth sockets 		*/
 #define AF_MAX		32	/* For now.. */
 
+// 每个协议对应的一个netfilter二维数组的一层下标。
 /* Protocol families, same as address families. */
 #define PF_UNSPEC	AF_UNSPEC
 #define PF_UNIX		AF_UNIX

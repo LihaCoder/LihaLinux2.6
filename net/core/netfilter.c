@@ -46,6 +46,8 @@
    sleep. */
 static DECLARE_MUTEX(nf_sockopt_mutex);
 
+// 为什么不用nf_hook_ops做数组类型？
+// 因为可以用链表+结构体首位，来优化空间。
 struct list_head nf_hooks[NPROTO][NF_MAX_HOOKS];
 static LIST_HEAD(nf_sockopts);
 static spinlock_t nf_hook_lock = SPIN_LOCK_UNLOCKED;

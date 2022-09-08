@@ -32,14 +32,14 @@ static inline void poll_wait(struct file * filp, wait_queue_head_t * wait_addres
 
 static inline void init_poll_funcptr(poll_table *pt, poll_queue_proc qproc)
 {
-	pt->qproc = qproc;
+	pt->qproc =  qproc;
 }
 
 /*
  * Structures and helpers for sys_poll/sys_poll
  */
 struct poll_wqueues {
-	poll_table pt;
+	poll_table pt;						// 回调事件。
 	struct poll_table_page * table;
 	int error;
 };

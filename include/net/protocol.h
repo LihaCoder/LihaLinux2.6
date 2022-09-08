@@ -34,7 +34,7 @@
 
 
 /* This is used to register protocols. */
-struct inet_protocol 
+struct inet_protocol
 {
 	int			(*handler)(struct sk_buff *skb);
 	void			(*err_handler)(struct sk_buff *skb, u32 info);

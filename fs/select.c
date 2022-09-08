@@ -32,13 +32,14 @@ struct poll_table_entry {
 	// 当前节点的文件。
 	struct file * filp;
 
-	// 这个是....
+	// 这个
 	wait_queue_t wait;
 
 	// 这是当前sock协议对应的一个队列。  注意这里是指针哦。  baby
 	wait_queue_head_t * wait_address;
 };
 
+// 这里维护了
 struct poll_table_page {
 	struct poll_table_page * next;
 	struct poll_table_entry * entry;
@@ -73,17 +74,25 @@ EXPORT_SYMBOL(poll_initwait);
 
 void poll_freewait(struct poll_wqueues *pwq)
 {
+	// 拿到等待队列
 	struct poll_table_page * p = pwq->table;
+	
 	while (p) {
 		struct poll_table_entry * entry;
 		struct poll_table_page *old;
 
 		entry = p->entry;
+		
 		do {
 			entry--;
+
+			// entry->wait_address这是队列
+			// entry->wait这是队列的任务
 			remove_wait_queue(entry->wait_address,&entry->wait);
+		
 			fput(entry->filp);
 		} while (entry > p->entries);
+		
 		old = p;
 		p = p->next;
 		free_page((unsigned long) old);
@@ -103,6 +112,7 @@ void __pollwait(struct file *filp, wait_queue_head_t *wait_address, poll_table *
 	struct poll_table_page *table = p->table;
 
 	// 队列不存在，或者内部元素为0.
+	// 也就是初始化的操作
 	if (!table || POLL_TABLE_FULL(table)) {
 		struct poll_table_page *new_table;
 
@@ -124,6 +134,7 @@ void __pollwait(struct file *filp, wait_queue_head_t *wait_address, poll_table *
 		struct poll_table_entry * entry = table->entry;
 
 		// 意思是poll_table_entry是一个连续的空间，数组？
+		// 下次使用entry，就是当前的下一个。
 		table->entry = entry+1;
 
 		// 原子性加引用。代表被使用了。
@@ -249,6 +260,8 @@ int do_select(int n, fd_set_bits *fds, long *timeout)
 			}
 
 			for (j = 0; j < __NFDBITS; ++j, ++i, bit <<= 1) {
+
+				// 这个退出条件，代表所有的n都已经遍历完了。
 				if (i >= n)
 					break;
 				if (!(bit & all_bits))
@@ -291,6 +304,7 @@ int do_select(int n, fd_set_bits *fds, long *timeout)
 			if (res_ex)
 				*rexp = res_ex;
 		}
+		// shit
 		wait = NULL;
 		if (retval || !__timeout || signal_pending(current))
 			break;
@@ -301,6 +315,7 @@ int do_select(int n, fd_set_bits *fds, long *timeout)
 		__timeout = schedule_timeout(__timeout);
 	}
 	__set_current_state(TASK_RUNNING);
+
 
 	poll_freewait(&table);
 
@@ -368,7 +383,7 @@ sys_select(int n, fd_set __user *inp, fd_set __user *outp, fd_set __user *exp, s
 		goto out_nofds;
 
 	/* max_fdset can increase, so grab it once to avoid race */
-	max_fdset = current->files->max_fdset;
+	max_fdset = current->·files->max_fdset;
 	if (n > max_fdset)
 		n = max_fdset;
 
@@ -443,6 +458,7 @@ struct poll_list {
 	struct pollfd entries[0];
 };
 
+
 #define POLLFD_PER_PAGE  ((PAGE_SIZE-sizeof(struct poll_list)) / sizeof(struct pollfd))
 
 static void do_pollfd(unsigned int num, struct pollfd * fdpage,
@@ -450,62 +466,98 @@ static void do_pollfd(unsigned int num, struct pollfd * fdpage,
 {
 	int i;
 
+	// num为数量
 	for (i = 0; i < num; i++) {
+		
 		int fd;
+		
 		unsigned int mask;
+	
 		struct pollfd *fdp;
 
 		mask = 0;
+
+		// 得到数组的下标元素
 		fdp = fdpage+i;
+
+		// 得到fd
 		fd = fdp->fd;
+		
 		if (fd >= 0) {
+			// 得到fd对应的file
 			struct file * file = fget(fd);
+			
 			mask = POLLNVAL;
+
+			
 			if (file != NULL) {
 				mask = DEFAULT_POLLMASK;
+				
 				if (file->f_op && file->f_op->poll)
+					// 老样子，执行poll，内部执行回调，把当前file和current放入到对应的等待队列中
 					mask = file->f_op->poll(file, *pwait);
+				
 				mask &= fdp->events | POLLERR | POLLHUP;
 				fput(file);
 			}
+
+			// 为什么没找到file
+			// count也++？
 			if (mask) {
 				*pwait = NULL;
 				(*count)++;
 			}
 		}
+		// 为0就代表
 		fdp->revents = mask;
 	}
 }
 
+// nfds数量
+// list poll_list链表头部
+// wait 等待队列和回调事件
+// timeout超时时间
 static int do_poll(unsigned int nfds,  struct poll_list *list,
 			struct poll_wqueues *wait, long timeout)
 {
 	int count = 0;
-	poll_table* pt = &wait->pt;
+	poll_table* pt = &wait->pt;	 	// 回调事件
 
 	if (!timeout)
 		pt = NULL;
  
 	for (;;) {
+		
 		struct poll_list *walk;
+		
 		set_current_state(TASK_INTERRUPTIBLE);
+	
 		walk = list;
+		
 		while(walk != NULL) {
+			
 			do_pollfd( walk->len, walk->entries, &pt, &count);
+			
 			walk = walk->next;
+		
 		}
+		
 		pt = NULL;
 		if (count || !timeout || signal_pending(current))
 			break;
-		count = wait->error;
+		count = wait->error;	
 		if (count)
 			break;
+
+		// 目前没事件，醒来了再试。
 		timeout = schedule_timeout(timeout);
+		
 	}
 	__set_current_state(TASK_RUNNING);
 	return count;
 }
 
+// ufds nfds 指针+数量 = 数组
 asmlinkage long sys_poll(struct pollfd __user * ufds, unsigned int nfds, long timeout)
 {
 	struct poll_wqueues table;
@@ -515,6 +567,7 @@ asmlinkage long sys_poll(struct pollfd __user * ufds, unsigned int nfds, long ti
  	struct poll_list *walk;
 
 	/* Do a sanity check on nfds ... */
+	// 一次的范围限制
 	if (nfds > current->files->max_fdset && nfds > OPEN_MAX)
 		return -EINVAL;
 
@@ -526,28 +579,43 @@ asmlinkage long sys_poll(struct pollfd __user * ufds, unsigned int nfds, long ti
 			timeout = MAX_SCHEDULE_TIMEOUT;
 	}
 
+	// 跟select一样，挂回调钩子
 	poll_initwait(&table);
 
-	head = NULL;
-	walk = NULL;
+
+	head = NULL;		// 链表头部
+	walk = NULL;		// 工作链表。
 	i = nfds;
 	err = -ENOMEM;
+
+	// 这个while的目的是把用户态的数据拷贝到内核态中（因为用户态的数据不可信）。
 	while(i!=0) {
+		
 		struct poll_list *pp;
+		
 		pp = kmalloc(sizeof(struct poll_list)+
 				sizeof(struct pollfd)*
 				(i>POLLFD_PER_PAGE?POLLFD_PER_PAGE:i),
 					GFP_KERNEL);
+	
 		if(pp==NULL)
 			goto out_fds;
+		
 		pp->next=NULL;
+
+		// 超过一个页？
 		pp->len = (i>POLLFD_PER_PAGE?POLLFD_PER_PAGE:i);
+
+		// 第一次走if初始化，后续链在链表后面。
 		if (head == NULL)
 			head = pp;
 		else
 			walk->next = pp;
 
+		// 赋好值，下次while。
 		walk = pp;
+
+		// 把用户态的内容，拷贝到内核态，除非超过一页，要不然就是一次性拷贝结束。
 		if (copy_from_user(pp->entries, ufds + nfds-i, 
 				sizeof(struct pollfd)*pp->len)) {
 			err = -EFAULT;
@@ -555,11 +623,15 @@ asmlinkage long sys_poll(struct pollfd __user * ufds, unsigned int nfds, long ti
 		}
 		i -= pp->len;
 	}
+
+	// 
 	fdcount = do_poll(nfds, head, &table, timeout);
 
 	/* OK, now copy the revents fields back to user space. */
 	walk = head;
 	err = -EFAULT;
+
+	// 把内容（全部，准备好的和没准备好的）再拷贝到用户态。
 	while(walk != NULL) {
 		struct pollfd *fds = walk->entries;
 		int j;
@@ -575,11 +647,15 @@ asmlinkage long sys_poll(struct pollfd __user * ufds, unsigned int nfds, long ti
 		err = -EINTR;
 out_fds:
 	walk = head;
+
+	// 返回前要把开辟的内存空间给释放
 	while(walk!=NULL) {
 		struct poll_list *pp = walk->next;
 		kfree(walk);
 		walk = pp;
 	}
+
+	// 并且要把链表中的数据给清空
 	poll_freewait(&table);
 	return err;
 }

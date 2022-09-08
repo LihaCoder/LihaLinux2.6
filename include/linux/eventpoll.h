@@ -36,7 +36,7 @@
 #endif
 
 struct epoll_event {
-	__u32 events;
+	__u32 events;		// 事件类型
 	__u64 data;
 } EPOLL_PACKED;
 

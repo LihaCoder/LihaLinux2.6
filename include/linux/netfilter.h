@@ -36,6 +36,7 @@ extern void netfilter_init(void);
 struct sk_buff;
 struct net_device;
 
+// 这算是定义接口，为了适配所有使用者，可能有些方法参数在某些方法并不会被使用。
 typedef unsigned int nf_hookfn(unsigned int hooknum,
 			       struct sk_buff **skb,
 			       const struct net_device *in,
@@ -44,7 +45,7 @@ typedef unsigned int nf_hookfn(unsigned int hooknum,
 
 struct nf_hook_ops
 {
-	struct list_head list;
+	struct list_head list;		// 链表。放在第一位是有意义的，因为结构体指向的就是第一个参数的地址
 
 	/* User fills in from here down. */
 	nf_hookfn *hook;
@@ -119,7 +120,7 @@ extern struct list_head nf_hooks[NPROTO][NF_MAX_HOOKS];
 /* This is gross, but inline doesn't cut it for avoiding the function
    call in fast path: gcc doesn't inline (needs value tracking?). --RR */
 #ifdef CONFIG_NETFILTER_DEBUG
-#define NF_HOOK(pf, hook, skb, indev, outdev, okfn)			\
+#define  (pf, hook, skb, indev, outdev, okfn)			\
  nf_hook_slow((pf), (hook), (skb), (indev), (outdev), (okfn), INT_MIN)
 #define NF_HOOK_THRESH nf_hook_slow
 #else

@@ -105,6 +105,7 @@ static struct inode *alloc_inode(struct super_block *sb)
 	static struct file_operations empty_fops;
 	struct inode *inode;
 
+	// 这里会把socket和inode全部创建好。
 	if (sb->s_op->alloc_inode)
 		inode = sb->s_op->alloc_inode(sb);
 	else

@@ -388,8 +388,8 @@ struct inode {
 	unsigned short          i_bytes;
 	spinlock_t		i_lock;	/* i_blocks, i_bytes, maybe i_size */
 	struct semaphore	i_sem;
-	struct inode_operations	*i_op;
-	struct file_operations	*i_fop;	/* former ->i_op->default_file_ops */
+	struct inode_operations	*i_op;		// 这个操作的函数指针都是针对inode来操作
+	struct file_operations	*i_fop;	/* former ->i_op->default_file_ops */	// 这个操作的函数指针都是针对文件具体的操作
 	struct super_block	*i_sb;
 	struct file_lock	*i_flock;
 	struct address_space	*i_mapping;
@@ -521,6 +521,7 @@ struct file {
 	void			*f_security;
 
 	/* needed for tty driver, and maybe others */
+	// 看到void* 就是来扩展的，毕竟指万物
 	void			*private_data;
 
 	/* Used by fs/eventpoll.c to link all the hooks to this file */

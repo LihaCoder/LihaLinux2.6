@@ -364,6 +364,7 @@ enum pci_mmap_state {
 /*
  * The pci_dev structure is used to describe PCI devices.
  */
+ // pci总线上的设备的抽象
 struct pci_dev {
 	struct list_head global_list;	/* node in list of all PCI devices */
 	struct list_head bus_list;	/* node in per-bus list */
@@ -448,6 +449,7 @@ struct pci_dev {
   
 #define PCI_REGION_FLAG_MASK 0x0fU	/* These bits of resource flags tell us the PCI region flags */
 
+// pci总线的抽象。
 struct pci_bus {
 	struct list_head node;		/* node in list of buses */
 	struct pci_bus	*parent;	/* parent bus this bridge is on */
@@ -509,6 +511,7 @@ struct pci_dynids {
 	unsigned int use_driver_data:1; /* pci_driver->driver_data is used */
 };
 
+// pci设备的驱动抽象。
 struct pci_driver {
 	struct list_head node;
 	char *name;
@@ -559,7 +562,10 @@ extern struct bus_type pci_bus_type;
 
 /* Do NOT directly access these two variables, unless you are arch specific pci
  * code, or pci core code. */
+ // 当前系统所有的pci总线。
 extern struct list_head pci_root_buses;	/* list of all known PCI buses */
+
+// pci设备的维护的队列中起点。
 extern struct list_head pci_devices;	/* list of all devices */
 
 void pcibios_fixup_bus(struct pci_bus *);

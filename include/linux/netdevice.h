@@ -252,7 +252,7 @@ struct netdev_boot_setup {
  *	FIXME: cleanup struct net_device such that network protocol info
  *	moves out.
  */
-
+// 网络设备的抽象。
 struct net_device
 {
 
@@ -333,6 +333,8 @@ struct net_device
 
 	/* Interface address info. */
 	unsigned char		broadcast[MAX_ADDR_LEN];	/* hw bcast add	*/
+
+	// 网络设备的mac地址
 	unsigned char		dev_addr[MAX_ADDR_LEN];	/* hw address	*/
 	unsigned char		addr_len;	/* hardware address length	*/
 
@@ -491,6 +493,8 @@ struct packet_type {
 #include <linux/notifier.h>
 
 extern struct net_device		loopback_dev;		/* The loopback */
+
+// 保存了所有的网络设备，那肯定是内核启动完成的事情。
 extern struct net_device		*dev_base;		/* All devices */
 extern rwlock_t				dev_base_lock;		/* Device list lock */
 

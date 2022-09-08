@@ -861,6 +861,7 @@ struct ethtool_lpbk_data{
 
 };
 
+// e100网卡的抽象
 struct e100_private {
 	struct vlan_group *vlgrp;
 	u32 flags;		/* board management flags */

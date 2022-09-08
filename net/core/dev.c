@@ -3047,6 +3047,7 @@ out:
 	return rc;
 }
 
+// 这个是内核打包的时候，选择的。
 subsys_initcall(net_dev_init);
 
 EXPORT_SYMBOL(__dev_get);

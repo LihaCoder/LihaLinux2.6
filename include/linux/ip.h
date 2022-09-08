@@ -163,6 +163,7 @@ struct inet_sock {
 
 #endif
 
+// 网络层，ip首部的结构，对于Linux内核的实现。
 struct iphdr {
 #if defined(__LITTLE_ENDIAN_BITFIELD)
 	__u8	ihl:4,
@@ -180,8 +181,8 @@ struct iphdr {
 	__u8	ttl;
 	__u8	protocol;
 	__u16	check;
-	__u32	saddr;
-	__u32	daddr;
+	__u32	saddr;		// 源ip地址
+	__u32	daddr;		// 目标ip地址
 	/*The options start here. */
 };
 

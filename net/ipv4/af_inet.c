@@ -323,6 +323,7 @@ static __inline__ int inet_sk_size(int protocol)
 
 static int inet_create(struct socket *sock, int protocol)
 {
+	// 门面模式，内部使用的是sock结构体。
 	struct sock *sk;
 	struct list_head *p;
 	struct inet_protosw *answer;
@@ -882,6 +883,7 @@ int inet_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
 	return err;
 }
 
+// tcp的操作
 struct proto_ops inet_stream_ops = {
 	.family =	PF_INET,
 	.owner =	THIS_MODULE,
@@ -939,6 +941,7 @@ extern void tcp_v4_init(struct net_proto_family *);
  */
 static struct inet_protosw inetsw_array[] =
 {
+		// tcp的
         {
                 .type =       SOCK_STREAM,
                 .protocol =   IPPROTO_TCP,
@@ -949,6 +952,7 @@ static struct inet_protosw inetsw_array[] =
                 .flags =      INET_PROTOSW_PERMANENT,
         },
 
+		// udp的
         {
                 .type =       SOCK_DGRAM,
                 .protocol =   IPPROTO_UDP,

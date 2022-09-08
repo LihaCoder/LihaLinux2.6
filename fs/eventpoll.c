@@ -179,6 +179,7 @@ struct poll_safewake {
  * structure and rapresent the main data sructure for the eventpoll
  * interface.
  */
+ // epoll的抽象本尊
 struct eventpoll {
 	/* Protect the this structure access */
 	rwlock_t lock;
@@ -195,9 +196,11 @@ struct eventpoll {
 	wait_queue_head_t wq;
 
 	/* Wait queue used by file->poll() */
+	// 等待队列
 	wait_queue_head_t poll_wait;
 
 	/* List of ready file descriptors */
+	// 就绪队列
 	struct list_head rdllist;
 
 	/* Size of the hash */
@@ -230,9 +233,11 @@ struct eppoll_entry {
  * have an entry of this type linked to the hash.
  */
 struct epitem {
+	// hash表的链
 	/* List header used to link this structure to the eventpoll hash */
 	struct list_head llink;
 
+	// 就绪队列的链
 	/* List header used to link this structure to the eventpoll ready list */
 	struct list_head rdllink;
 
@@ -541,6 +546,10 @@ eexit_1:
  * file descriptors inside the interest set.  It represents
  * the kernel part of the user space epoll_ctl(2).
  */
+ // epfd 是epoll的文件描述符
+ // op 操作
+ // fd 是用户态要操作的fd
+ // event 用来存储事件返回到用户态。
 asmlinkage long
 sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event __user *event)
 {
@@ -554,22 +563,29 @@ sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event __user *event)
 		     current, epfd, op, fd, event));
 
 	error = -EFAULT;
+
+	// 把用户态的内容放入到内核态。
 	if (copy_from_user(&epds, event, sizeof(struct epoll_event)))
 		goto eexit_1;
 
 	/* Get the "struct file *" for the eventpoll file */
 	error = -EBADF;
+	
 	file = fget(epfd);
 	if (!file)
 		goto eexit_1;
 
 	/* Get the "struct file *" for the target file */
 	tfile = fget(fd);
+	
 	if (!tfile)
 		goto eexit_2;
 
 	/* The target file descriptor must support poll */
 	error = -EPERM;
+
+	// 必须实现poll函数指针
+	// 也就是用这个函数指针来做判断，是不是我要的file
 	if (!tfile->f_op || !tfile->f_op->poll)
 		goto eexit_3;
 
@@ -579,6 +595,8 @@ sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event __user *event)
 	 * adding an epoll file descriptor inside itself.
 	 */
 	error = -EINVAL;
+
+	// 操作epoll文件本身？   有病？
 	if (file == tfile || !IS_FILE_EPOLL(file))
 		goto eexit_3;
 
@@ -586,15 +604,22 @@ sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event __user *event)
 	 * At this point it is safe to assume that the "private_data" contains
 	 * our own data structure.
 	 */
+	 // 在epoll_create中会把eventpoll放入到epoll对应的文件中。
 	ep = file->private_data;
 
 	down_write(&ep->sem);
 
 	/* Try to lookup the file inside our hash table */
+	// 在epoll中，一个io等待任务抽象成一个epitem
+	// 如果是删除和修改操作，需要用之前的epitem，而epitem为了效率，使用到hash表来存储。
 	epi = ep_find(ep, tfile, fd);
 
 	error = -EINVAL;
+
+	// 区分具体的操作
 	switch (op) {
+
+	// 添加
 	case EPOLL_CTL_ADD:
 		if (!epi) {
 			epds.events |= POLLERR | POLLHUP;
@@ -603,12 +628,16 @@ sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event __user *event)
 		} else
 			error = -EEXIST;
 		break;
+
+	// 删除
 	case EPOLL_CTL_DEL:
 		if (epi)
 			error = ep_remove(ep, epi);
 		else
 			error = -ENOENT;
 		break;
+
+	// 修改
 	case EPOLL_CTL_MOD:
 		if (epi) {
 			epds.events |= POLLERR | POLLHUP;
@@ -988,6 +1017,9 @@ static void ep_release_epitem(struct epitem *epi)
  * This is the callback that is used to add our wait queue to the
  * target file wakeup lists.
  */
+ // file 操作的文件
+ // whead 等待队列
+ // pt是当前回调事件。
 static void ep_ptable_queue_proc(struct file *file, wait_queue_head_t *whead,
 				 poll_table *pt)
 {
@@ -1017,15 +1049,19 @@ static int ep_insert(struct eventpoll *ep, struct epoll_event *event,
 	struct ep_pqueue epq;
 
 	error = -ENOMEM;
+
+	// 开辟一个epitem
 	if (!(epi = EPI_MEM_ALLOC()))
 		goto eexit_1;
 
 	/* Item initialization follow here ... */
+	// 初始化内部的链表。也就是先链到自身
 	INIT_LIST_HEAD(&epi->llink);
 	INIT_LIST_HEAD(&epi->rdllink);
 	INIT_LIST_HEAD(&epi->fllink);
 	INIT_LIST_HEAD(&epi->txlink);
 	INIT_LIST_HEAD(&epi->pwqlist);
+	
 	epi->ep = ep;
 	epi->file = tfile;
 	epi->fd = fd;
@@ -1035,6 +1071,8 @@ static int ep_insert(struct eventpoll *ep, struct epoll_event *event,
 
 	/* Initialize the poll table using the queue callback */
 	epq.epi = epi;
+
+	// 挂钩子
 	init_poll_funcptr(&epq.pt, ep_ptable_queue_proc);
 
 	/*
@@ -1042,6 +1080,8 @@ static int ep_insert(struct eventpoll *ep, struct epoll_event *event,
 	 * We can safely use the file* here because its usage count has
 	 * been increased by the caller of this function.
 	 */
+
+	// poll内部会执行上面的钩子，并且会把当前的item放入到某个队列中。
 	revents = tfile->f_op->poll(tfile, &epq.pt);
 
 	/*
@@ -1125,6 +1165,7 @@ static int ep_modify(struct eventpoll *ep, struct epitem *epi, struct epoll_even
 	 * Get current event bits. We can safely use the file* here because
 	 * its usage count has been increased by the caller of this function.
 	 */
+	 // 
 	revents = epi->file->f_op->poll(epi->file, NULL);
 
 	write_lock_irqsave(&ep->lock, flags);
@@ -1352,6 +1393,7 @@ static unsigned int ep_eventpoll_poll(struct file *file, poll_table *wait)
 	struct eventpoll *ep = file->private_data;
 
 	/* Insert inside our poll wait queue */
+	// 回调钩子，内部会把当前file和current放入到epoll的队列中。
 	poll_wait(file, &ep->poll_wait, wait);
 
 	/* Check our condition */
@@ -1609,6 +1651,7 @@ retry:
 	}
 
 	/* Is it worth to try to dig for events ? */
+	// 这代表有值
 	eavail = !list_empty(&ep->rdllist);
 
 	write_unlock_irqrestore(&ep->lock, flags);
@@ -1618,6 +1661,7 @@ retry:
 	 * there's still timeout left over, we go trying again in search of
 	 * more luck.
 	 */
+	 // 把事件迁移到用户态
 	if (!res && eavail &&
 	    !(res = ep_events_transfer(ep, events, maxevents)) && jtimeout)
 		goto retry;

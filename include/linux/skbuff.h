@@ -113,11 +113,15 @@ struct nf_bridge_info {
 
 #endif
 
+// socket缓冲区的头部。
 struct sk_buff_head {
 	/* These two members must be first. */
+
+	// 生成一个循环链表
 	struct sk_buff	*next;
 	struct sk_buff	*prev;
 
+	// 链表的长度，也就是sk_buff的数量。
 	__u32		qlen;
 	spinlock_t	lock;
 };
@@ -187,19 +191,28 @@ struct skb_shared_info {
  *	@tc_index: Traffic control index
  */
 
+// 这个是socket套接字在内存的缓存区的抽象结构。
+// 而传输层的协议有很多，比如tcp和udp，所以这里缓存区存放的数据类型会有区别，所以指针的魅力又出现了！！
+// 那么可以理解为sk_buff就是一个帧的数据+os的元数据信息？然后数据结构连接起来？
 struct sk_buff {
 	/* These two members must be first. */
 	struct sk_buff		*next;
 	struct sk_buff		*prev;
 
+	// 指回循环链表的头部。
 	struct sk_buff_head	*list;
+	
 	struct sock		*sk;
 	struct timeval		stamp;
 	struct net_device	*dev;
 	struct net_device	*real_dev;
 
+	// 传输层的分类
 	union {
+		// tcp协议的头部
 		struct tcphdr	*th;
+
+		// udp协议的头部
 		struct udphdr	*uh;
 		struct icmphdr	*icmph;
 		struct igmphdr	*igmph;
@@ -207,6 +220,7 @@ struct sk_buff {
 		unsigned char	*raw;
 	} h;
 
+	// ip网络层分类
 	union {
 		struct iphdr	*iph;
 		struct ipv6hdr	*ipv6h;
@@ -214,6 +228,7 @@ struct sk_buff {
 		unsigned char	*raw;
 	} nh;
 
+	// mac的分类
 	union {
 	  	struct ethhdr	*ethernet;
 	  	unsigned char 	*raw;
@@ -265,6 +280,8 @@ struct sk_buff {
 	/* These elements must be at the end, see alloc_skb() for details.  */
 	unsigned int		truesize;
 	atomic_t		users;
+
+	// 指针的魅力，任何层的协议都能使用。
 	unsigned char		*head,
 				*data,
 				*tail,

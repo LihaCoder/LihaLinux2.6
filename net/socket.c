@@ -272,6 +272,7 @@ static kmem_cache_t * sock_inode_cachep;
 
 static struct inode *sock_alloc_inode(struct super_block *sb)
 {
+	// 扣1.
 	struct socket_alloc *ei;
 	ei = (struct socket_alloc *)kmem_cache_alloc(sock_inode_cachep, SLAB_KERNEL);
 	if (!ei)
@@ -329,6 +330,7 @@ static struct super_block *sockfs_get_sb(struct file_system_type *fs_type,
 
 static struct vfsmount *sock_mnt;
 
+// 函数指针
 static struct file_system_type sock_fs_type = {
 	.name =		"sockfs",
 	.get_sb =	sockfs_get_sb,
@@ -396,6 +398,8 @@ int sock_map_fd(struct socket *sock)
 		file->f_vfsmnt = mntget(sock_mnt);
 
 		sock->file = file;
+
+		// 这就是socket的fd对应的file的操作赋值。
 		file->f_op = SOCK_INODE(sock)->i_fop = &socket_file_ops;
 		file->f_mode = 3;
 		file->f_flags = O_RDWR;
@@ -460,6 +464,7 @@ struct socket *sock_alloc(void)
 	struct inode * inode;
 	struct socket * sock;
 
+	// super_block管理inode
 	inode = new_inode(sock_mnt->mnt_sb);
 	if (!inode)
 		return NULL;
@@ -1054,6 +1059,7 @@ int sock_create(int family, int type, int protocol, struct socket **res)
 	if (!try_module_get(net_families[family]->owner))
 		goto out_release;
 
+	// 初始化用户选择的协议族。
 	if ((i = net_families[family]->create(sock, protocol)) < 0)
 		goto out_module_put;
 	/*
@@ -1892,6 +1898,8 @@ int sock_register(struct net_proto_family *ops)
 	}
 	net_family_write_lock();
 	err = -EEXIST;
+
+	// 把某个协议所拥有的操作赋值。
 	if (net_families[ops->family] == NULL) {
 		net_families[ops->family]=ops;
 		err = 0;
