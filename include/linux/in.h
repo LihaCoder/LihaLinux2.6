@@ -175,6 +175,8 @@ struct in_pktinfo
 #define __SOCK_SIZE__	16		/* sizeof(struct sockaddr)	*/
 struct sockaddr_in {
   sa_family_t		sin_family;	/* Address family		*/
+
+  // 端口号
   unsigned short int	sin_port;	/* Port number			*/
 
   // 这里的地址是4个字节，因为规范是192.192.192.192。每个部分为一个字节

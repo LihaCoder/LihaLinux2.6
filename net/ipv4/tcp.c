@@ -539,8 +539,10 @@ int tcp_ioctl(struct sock *sk, int cmd, unsigned long arg)
 
 int tcp_listen_start(struct sock *sk)
 {
+	// 指针的骚操作。
 	struct inet_opt *inet = inet_sk(sk);
 	struct tcp_opt *tp = tcp_sk(sk);
+	
 	struct tcp_listen_opt *lopt;
 
 	sk->sk_max_ack_backlog = 0;
@@ -550,16 +552,21 @@ int tcp_listen_start(struct sock *sk)
 	tcp_delack_init(tp);
 
 	lopt = kmalloc(sizeof(struct tcp_listen_opt), GFP_KERNEL);
+	
 	if (!lopt)
 		return -ENOMEM;
 
+
 	memset(lopt, 0, sizeof(struct tcp_listen_opt));
+	
 	for (lopt->max_qlen_log = 6; ; lopt->max_qlen_log++)
 		if ((1 << lopt->max_qlen_log) >= sysctl_max_syn_backlog)
 			break;
+		
 	get_random_bytes(&lopt->hash_rnd, 4);
 
 	write_lock_bh(&tp->syn_wait_lock);
+	
 	tp->listen_opt = lopt;
 	write_unlock_bh(&tp->syn_wait_lock);
 
@@ -568,7 +575,10 @@ int tcp_listen_start(struct sock *sk)
 	 * It is OK, because this socket enters to hash table only
 	 * after validation is complete.
 	 */
+	 // 把状态改成listen
 	sk->sk_state = TCP_LISTEN;
+
+	// 再次检查端口，
 	if (!sk->sk_prot->get_port(sk, inet->num)) {
 		inet->sport = htons(inet->num);
 
@@ -578,6 +588,7 @@ int tcp_listen_start(struct sock *sk)
 		return 0;
 	}
 
+	// 端口被占用，清空操作，并返回错误码
 	sk->sk_state = TCP_CLOSE;
 	write_lock_bh(&tp->syn_wait_lock);
 	tp->listen_opt = NULL;
@@ -2204,10 +2215,16 @@ static int wait_for_connect(struct sock *sk, long timeo)
 		prepare_to_wait_exclusive(sk->sk_sleep, &wait,
 					  TASK_INTERRUPTIBLE);
 		release_sock(sk);
+
+		// 如果连接队列还为空，就睡眠了。
 		if (!tp->accept_queue)
 			timeo = schedule_timeout(timeo);
 		lock_sock(sk);
 		err = 0;
+
+		// 醒来后，
+		// 这里盲猜，分2种，一种是到时间了，一种是被唤醒了，
+		// 判断连接队列是否有值，有值就直接退出循环。
 		if (tp->accept_queue)
 			break;
 		err = -EINVAL;
@@ -2245,7 +2262,12 @@ struct sock *tcp_accept(struct sock *sk, int flags, int *err)
 		goto out;
 
 	/* Find already established connection */
+
+	// tp->accept_queue得到建立连接的队列，如果为0就代表还没有
 	if (!tp->accept_queue) {
+		
+		// 进来这里就代表还没有连接。
+		// 所以要决定阻塞的时间
 		long timeo = sock_rcvtimeo(sk, flags & O_NONBLOCK);
 
 		/* If this is a non blocking socket don't sleep */
@@ -2253,12 +2275,15 @@ struct sock *tcp_accept(struct sock *sk, int flags, int *err)
 		if (!timeo)
 			goto out;
 
+		// 直接尝试上下文切换，也就是当前进程直接阻塞
 		error = wait_for_connect(sk, timeo);
 		if (error)
 			goto out;
 	}
 
+	// 从wait_for_connect出来的，可能accept_queue已经存在连接请求了。
 	req = tp->accept_queue;
+	
 	if ((tp->accept_queue = req->dl_next) == NULL)
 		tp->accept_queue_tail = NULL;
 

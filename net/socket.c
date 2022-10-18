@@ -1184,22 +1184,31 @@ out:
  *	We move the socket address to kernel space before we call
  *	the protocol layer (having also checked the address is ok).
  */
-
+// 用于绑定一个端口给socket
+// fd是socket的fd
+// struct sockaddr __user *umyaddr 是用户态传入绑定的数据
+// int addrlen 暂时未知。
 asmlinkage long sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen)
 {
 	struct socket *sock;
 	char address[MAX_SOCK_ADDR];
 	int err;
 
+	// 根据socket的fd找到socket结构体
 	if((sock = sockfd_lookup(fd,&err))!=NULL)
 	{
+		// 将用户态的数据拷贝到内核态，因为用户态的数据不可靠。
 		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0) {
+			
 			err = security_socket_bind(sock, (struct sockaddr *)address, addrlen);
+			
 			if (err) {
 				sockfd_put(sock);
 				return err;
 			}
+			
 			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
+			
 		}
 		sockfd_put(sock);
 	}			
@@ -1255,14 +1264,18 @@ asmlinkage long sys_accept(int fd, struct sockaddr __user *upeer_sockaddr, int _
 	int err, len;
 	char address[MAX_SOCK_ADDR];
 
+	// 通过fd找到socket
 	sock = sockfd_lookup(fd, &err);
 	if (!sock)
 		goto out;
 
 	err = -EMFILE;
+
+	// 创建一个新的socket
 	if (!(newsock = sock_alloc())) 
 		goto out_put;
 
+	// 把原socket的协议类型和协议对应的操作(指针函数)赋值给新的。
 	newsock->type = sock->type;
 	newsock->ops = sock->ops;
 
@@ -1276,6 +1289,7 @@ asmlinkage long sys_accept(int fd, struct sockaddr __user *upeer_sockaddr, int _
 	 */
 	__module_get(newsock->ops->owner);
 
+	// 调用函数指针。
 	err = sock->ops->accept(sock, newsock, sock->file->f_flags);
 	if (err < 0)
 		goto out_release;
@@ -1292,6 +1306,7 @@ asmlinkage long sys_accept(int fd, struct sockaddr __user *upeer_sockaddr, int _
 
 	/* File flags are not inherited via accept() unlike another OSes. */
 
+	// 把socket与file做映射，并且返回映射的fd。
 	if ((err = sock_map_fd(newsock)) < 0)
 		goto out_release;
 

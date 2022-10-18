@@ -106,8 +106,7 @@ static struct inode *alloc_inode(struct super_block *sb)
 	struct inode *inode;
 
 	// 这里会把socket和inode全部创建好。
-	if (sb->s_op->alloc_inode)
-		inode = sb->s_op->alloc_inode(sb);
+	if (sb->s_op
 	else
 		inode = (struct inode *) kmem_cache_alloc(inode_cachep, SLAB_KERNEL);
 

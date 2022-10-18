@@ -432,12 +432,25 @@ struct alt_instr {
 #endif
 
 #ifdef CONFIG_SMP
+// SMP对称多处理器情况下：
+// 全屏障。
 #define smp_mb()	mb()
+
+// 读屏障。
 #define smp_rmb()	rmb()
+
+// 写屏障。
 #define smp_wmb()	wmb()
+
+// 为什么不存在？  因为intel平台已经保证了数据的可见了。
 #define smp_read_barrier_depends()	read_barrier_depends()
 #define set_mb(var, value) do { xchg(&var, value); } while (0)
 #else
+// 正常情况下（非SMP，那就是单cpu模式）：
+// 通过intel手册，我们得知，在单cpu中只有在写读的情况下，
+// cpu会优化，把读提前，但是是不存在数据依赖的情况，所以这种情况也不需要处理，因为是单cpu
+// 其他重排序的情况cpu都是底层自动帮开发者做好了。
+// 所以全屏障、读、写屏障都是编译器屏障，让编译器不出现问题，那么就不会出现任何问题。
 #define smp_mb()	barrier()
 #define smp_rmb()	barrier()
 #define smp_wmb()	barrier()

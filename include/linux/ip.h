@@ -159,6 +159,9 @@ struct inet_sock {
 	struct inet_opt   inet;
 };
 
+// __sk 是sock结构体
+// 那么为什么能这么转呢？
+// 因为，肯定在创建sock的时候顺便把后面内存页创建了inet_sock其他的内容，而把sock放在头部。
 #define inet_sk(__sk) (&((struct inet_sock *)__sk)->inet)
 
 #endif

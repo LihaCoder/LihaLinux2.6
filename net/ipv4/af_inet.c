@@ -272,21 +272,29 @@ int inet_listen(struct socket *sock, int backlog)
 	lock_sock(sk);
 
 	err = -EINVAL;
+
+	// 判断当前socket是不是tcp。如果不是的直接GG
 	if (sock->state != SS_UNCONNECTED || sock->type != SOCK_STREAM)
 		goto out;
 
 	old_state = sk->sk_state;
+
+	// 如果
 	if (!((1 << old_state) & (TCPF_CLOSE | TCPF_LISTEN)))
 		goto out;
 
 	/* Really, if the socket is already in listen state
 	 * we can only allow the backlog to be adjusted.
 	 */
+	 // 如果不是tcp正在监听的状态，就开启监听。
 	if (old_state != TCP_LISTEN) {
+
+		// 开启监听。
 		err = tcp_listen_start(sk);
 		if (err)
 			goto out;
 	}
+	// 设置用户态传入的阻塞队列的长度。
 	sk->sk_max_ack_backlog = backlog;
 	err = 0;
 
@@ -471,19 +479,29 @@ int sysctl_ip_nonlocal_bind;
 
 int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 {
+	// 可以把sockaddr_in理解为内核中用的结构体
+	// 而sockaddr是给用户态用的结构体。 
+	// 两者可以互转（因为用户态的数据是不可靠的）
 	struct sockaddr_in *addr = (struct sockaddr_in *)uaddr;
 	struct sock *sk = sock->sk;
+
+	// 把sock转换成inet_sock，然后从inet_sock拿到inet_opt
 	struct inet_opt *inet = inet_sk(sk);
+	
 	unsigned short snum;
 	int chk_addr_ret;
 	int err;
 
 	/* If the socket has its own bind function then use it. (RAW) */
+	// 当前tcp不支持直接绑定。
 	if (sk->sk_prot->bind) {
 		err = sk->sk_prot->bind(sk, uaddr, addr_len);
 		goto out;
 	}
 	err = -EINVAL;
+
+	// 查看用户态传入的第三个参数是否有误。
+	// 因为第三个参数要传入的是sockaddr_in结构体的大小。
 	if (addr_len < sizeof(struct sockaddr_in))
 		goto out;
 
@@ -505,7 +523,9 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 	    chk_addr_ret != RTN_BROADCAST)
 		goto out;
 
+	// 用户态传入的端口号
 	snum = ntohs(addr->sin_port);
+	
 	err = -EACCES;
 	if (snum && snum < PROT_SOCK && !capable(CAP_NET_BIND_SERVICE))
 		goto out;
@@ -524,11 +544,16 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 	if (sk->sk_state != TCP_CLOSE || inet->num)
 		goto out_release_sock;
 
+	// 把地址写入到inet_ops中。
 	inet->rcv_saddr = inet->saddr = addr->sin_addr.s_addr;
+
+	
 	if (chk_addr_ret == RTN_MULTICAST || chk_addr_ret == RTN_BROADCAST)
 		inet->saddr = 0;  /* Use device */
 
+	
 	/* Make sure we are allowed to bind here. */
+	// 如果调用get_port函数指针能找到当前端口，那不就是已经被占用了？
 	if (sk->sk_prot->get_port(sk, snum)) {
 		inet->saddr = inet->rcv_saddr = 0;
 		err = -EADDRINUSE;
@@ -539,7 +564,11 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 		sk->sk_userlocks |= SOCK_BINDADDR_LOCK;
 	if (snum)
 		sk->sk_userlocks |= SOCK_BINDPORT_LOCK;
+
+	// 把端口写入到inet_ops
 	inet->sport = htons(inet->num);
+
+	// 因为是服务端，所以创建时不需要指定目的地址和端口。
 	inet->daddr = 0;
 	inet->dport = 0;
 	sk_dst_reset(sk);
@@ -680,6 +709,9 @@ int inet_accept(struct socket *sock, struct socket *newsock, int flags)
 {
 	struct sock *sk1 = sock->sk;
 	int err = -EINVAL;
+
+	// tcp_accept
+	// 返回一个新的sock结构体
 	struct sock *sk2 = sk1->sk_prot->accept(sk1, flags, &err);
 
 	if (!sk2)
@@ -690,6 +722,7 @@ int inet_accept(struct socket *sock, struct socket *newsock, int flags)
 	BUG_TRAP((1 << sk2->sk_state) &
 		 (TCPF_ESTABLISHED | TCPF_CLOSE_WAIT | TCPF_CLOSE));
 
+	// 将新的socket结构体和sock结构体做关联。
 	sock_graft(sk2, newsock);
 
 	newsock->state = SS_CONNECTED;
@@ -1144,6 +1177,7 @@ static int __init inet_init(void)
 	for (r = &inetsw[0]; r < &inetsw[SOCK_MAX]; ++r)
 		INIT_LIST_HEAD(r);
 
+	// 赋值tcp/ip  的所有运输层的操作
 	for (q = inetsw_array; q < &inetsw_array[INETSW_ARRAY_LEN]; ++q)
 		inet_register_protosw(q);
 
